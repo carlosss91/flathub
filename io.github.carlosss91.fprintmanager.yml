@@ -1,0 +1,50 @@
+id: io.github.carlosss91.fprintmanager
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.llvm20
+command: fprint_manager
+
+finish-args:
+  - --share=ipc
+  - --share=network # Necesario para EthicalAds y validación online de licencias Supporter
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --system-talk-name=net.reactivated.Fprint
+
+modules:
+  - name: fprint-manager
+    buildsystem: simple
+    build-options:
+      env:
+        PUB_CACHE: /run/build/fprint-manager/.pub-cache
+        CC: clang
+        CXX: clang++
+      append-path: /run/build/fprint-manager/flutter/bin:/usr/lib/sdk/llvm20/bin
+    build-commands:
+      - flutter config --no-analytics
+      - flutter pub get --offline
+      - flutter build linux --release --no-pub
+      - mkdir -p /app/lib/fprint_manager /app/bin /app/share/applications /app/share/metainfo /app/share/icons/hicolor/scalable/apps
+      - cp -a build/linux/x64/release/bundle/* /app/lib/fprint_manager/
+      - chmod +x /app/lib/fprint_manager/fprint_manager
+      - |
+        cat << 'EOF' > /app/bin/fprint_manager
+        #!/bin/sh
+        exec /app/lib/fprint_manager/fprint_manager "$@"
+        EOF
+      - chmod +x /app/bin/fprint_manager
+      - install -Dm644 data/io.github.carlosss91.fprintmanager.desktop /app/share/applications/io.github.carlosss91.fprintmanager.desktop
+      - install -Dm644 data/io.github.carlosss91.fprintmanager.metainfo.xml /app/share/metainfo/io.github.carlosss91.fprintmanager.metainfo.xml
+      - install -Dm644 data/icons/io.github.carlosss91.fprintmanager.svg /app/share/icons/hicolor/scalable/apps/io.github.carlosss91.fprintmanager.svg
+    sources:
+      - type: git
+        url: https://github.com/carlosss91/Fprint-Manager.git
+        tag: v1.0.0
+      - type: archive
+        url: https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.2-stable.tar.xz
+        sha256: 447878859d01ca9bfdb99a85f245af07ed8a15fedcd9d189c4749e8e92d1f185
+        dest: flutter
+      - pubspec-sources.json
